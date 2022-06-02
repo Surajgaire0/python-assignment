@@ -1,0 +1,11 @@
+{
+    "input": {
+        "delimiter": ",",
+        "quotechar": "'"
+    },
+    "output": {
+        "delimiter": ";",
+        "quoting": 1,
+        "quotechar": "|"
+    }
+}
