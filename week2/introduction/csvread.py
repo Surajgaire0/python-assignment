@@ -3,15 +3,17 @@ import json
 
 
 def main():
+    input_file = input("Enter input csv file name : ")
+    output_file = input("Enter output csv file name: ")
     # read config from config.json
     with open("../files/config.json", "r") as f:
         config = json.load(f)
 
     # read from input.csv and output to output.csv
-    with open("../files/input.csv", "r") as f:
+    with open(input_file, "r") as f:
         reader = csv.reader(f, **config["input"])
 
-        with open("../files/output.csv", "w", newline="") as f:
+        with open(output_file, "w", newline="") as f:
             writer = csv.writer(f, **config["output"])
 
             for row in reader:
