@@ -1,0 +1,6 @@
+{
+    "email_server": "replace with email server",
+    "port": "replace with port number",
+    "sender_email": "replace with sender email",
+    "password": "replace with password"
+}
