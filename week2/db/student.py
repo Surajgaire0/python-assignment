@@ -2,88 +2,79 @@ import sqlite3
 
 import pyodbc
 
-
-class Student:
-    def __init__(self, id, fname, lname):
-        self.fname = fname
-        self.lname = lname
-        self.id = id
+from config import db, schema
 
 
-class Fee:
-    def __init__(self, student_id, amount):
-        self.student_id = student_id
-        self.amount = amount
+def create_table(cur, db_type, table):
+    sql = (
+        "create table if not exists "
+        + table
+        + " ( "
+        + ",".join([col + " " + dtype for col, dtype in schema[table][db_type].items()])
+        + " )"
+    )
+    cur.execute(sql)
 
 
-def create_tables(cur, db_type):
-    if db_type == "sqlite":
-        cur.execute(
-            """create table if not exists student (
-            id integer primary key,
-            fname text,
-            lname text
-        )"""
-        )
+def insert(cur, db_type, table):
+    columns = schema[table][db_type].keys()  # column names
+    values = [input(f"Enter {col}: ") for col in columns]  # ask for values to insert
+    values = ["'{}'".format(value) if not value.isnumeric() else value for value in values]
 
-        cur.execute(
-            """create table if not exists fee (
-                student_id integer,
-                amount real,
-                foreign key(student_id) references student(id)
-                )"""
-        )
-
-    elif db_type == "sqlserver":
-        cur.execute(
-            """create table if not exists student (
-            id int primary key,
-            fname varchar(15),
-            lname varchar(15)
-        )"""
-        )
-
-        cur.execute(
-            """create table if not exists fee (
-                student_id int,
-                amount real,
-                foreign key(student_id) references student(id)
-                )"""
-        )
-
-    else:
-        raise Exception("db_type must be sqlite or sqlserver")
+    cur.execute("insert into {} values ({})".format(table, ",".join(values)))
 
 
-def add_student(cur, student):
+def read(cur, table: "str", columns: "str" = "*", condition: "str" = True):
     cur.execute(
-        "insert into student values (:id,:fname,:lname)",
-        {"id": student.id, "fname": student.fname, "lname": student.lname},
+        "Select {} from {} where {}".format(
+            columns,
+            table,
+            condition,
+        )
+    )
+    return cur.fetchall()
+
+
+def update(cur, table: "str", newdata: "dict", condition: "str"):
+    cur.execute(
+        "Update {} set {} where {}".format(
+            table,
+            ",".join(["{}='{}'".format(col, values) for col, values in newdata.items()]),
+            condition,
+        )
     )
 
 
-def add_fee(cur, fee):
+def delete(cur, table: "str", condition: "str"):
     cur.execute(
-        "insert into fee values (:id,:amount)",
-        {"id": fee.student_id, "amount": fee.amount},
+        "Delete from {} where {}".format(
+            table,
+            condition,
+        )
     )
 
 
-def display_student_info(cur, id):
+def join(
+    cur,
+    table1,
+    table2,
+    join_condition: str,
+    columns: str = "*",
+    join_type="inner join",
+    where_condition=True,
+):
     cur.execute(
-        "select id, fname, lname, amount from student inner join fee on student.id=fee.student_id where student.id=?",
-        (id,),
+        f"select {columns} from {table1} {join_type} {table2} on {join_condition} where {where_condition}"
     )
     return cur.fetchall()
 
 
 def create_connection(db_type):
     if db_type == "sqlite":
-        conn = sqlite3.Connection("student.db")
+        conn = sqlite3.Connection(db[db_type])
         cur = conn.cursor()
     elif db_type == "sqlserver":
-        conn_string = None  # replace it with conection string
-        conn = pyodbc.connect(conn_string)
+        conn = pyodbc.connect(db[db_type])
         cur = conn.cursor()
     else:
         raise Exception("db_type must be sqlite or sqlserver")
@@ -95,24 +86,56 @@ def main():
 
     conn, cur = create_connection(db_type)
 
-    create_tables(cur, db_type)
-
-    student1 = Student(1, "Ram", "Sharma")
-    student2 = Student(2, "Shyam", "Shah")
-
-    fee1 = Fee(1, 10000)
-    fee2 = Fee(2, 20000.4)
+    create_table(cur, db_type, "student")
+    create_table(cur, db_type, "fee")
 
     with conn:
-        add_student(cur, student1)
-        add_fee(cur, fee1)
-        add_student(cur, student2)
-        add_fee(cur, fee2)
+        # CRUD operations for student table
 
-        stu_id = int(input("Enter student id:"))
-        info = display_student_info(cur, stu_id)
+        # insert row in student table
+        # insert(cur, "sqlite", "student")
+        insert(cur, "sqlite", "student")
 
-        print(f"Student {stu_id} details: {info}")
+        # select fname, lname from student where lname like 'S%'
+        print(
+            "Students whose last name begins with s: ",
+            read(cur, "student", "fname, lname", "lname like 'S%'"),
+        )
+
+        # select * from student
+        print("All entries from student", read(cur, "student"))
+
+        # Update student set fname=try where id=1
+        update(cur, "student", {"fname": "try"}, "id=1")
+
+        # delete from student where lname like 'g%'
+        delete(cur, "student", "fname like 'g%'")
+
+        # CRUD operations for fee table
+
+        insert(cur, "sqlite", "fee")
+        # insert(cur, "sqlite", "fee")
+
+        print("Student id whose amount > 100: ", read(cur, "fee", "student_id", "amount>100"))
+
+        print("All entries from fee", read(cur, "fee"))
+
+        update(cur, "fee", {"amount": 200}, "student_id=1")
+
+        delete(cur, "fee", "student_id=2")
+
+        # display joined table
+        print("Student 1 data (joining student and fee): ", end="")
+        print(
+            join(
+                cur,
+                "student",
+                "fee",
+                join_condition="student.id=fee.student_id",
+                join_type="inner join",
+                where_condition="id=1",
+            )
+        )
 
     conn.close()
 
