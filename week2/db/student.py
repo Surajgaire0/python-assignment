@@ -7,7 +7,8 @@ from config import db, schema
 
 def create_table(cur, db_type, table):
     sql = (
-        "create table if not exists "
+        # "create table if not exists "
+        "create table "
         + table
         + " ( "
         + ",".join([col + " " + dtype for col, dtype in schema[table][db_type].items()])
@@ -24,7 +25,7 @@ def insert(cur, db_type, table):
     cur.execute("insert into {} values ({})".format(table, ",".join(values)))
 
 
-def read(cur, table: "str", columns: "str" = "*", condition: "str" = True):
+def read(cur, table: "str", columns: "str" = "*", condition: "str" = "1=1"):
     cur.execute(
         "Select {} from {} where {}".format(
             columns,
@@ -61,7 +62,7 @@ def join(
     join_condition: str,
     columns: str = "*",
     join_type="inner join",
-    where_condition=True,
+    where_condition="1=1",
 ):
     cur.execute(
         f"select {columns} from {table1} {join_type} {table2} on {join_condition} where {where_condition}"
@@ -86,30 +87,30 @@ def main():
 
     conn, cur = create_connection(db_type)
 
-    create_table(cur, db_type, "student")
-    create_table(cur, db_type, "fee")
+    # create_table(cur, db_type, "students") #uncomment to create students table
+    # create_table(cur, db_type, "fee") # uncomment to  create fee table
 
     with conn:
         # CRUD operations for student table
 
         # insert row in student table
-        # insert(cur, "sqlite", "student")
-        insert(cur, "sqlite", "student")
+        # insert(cur, "sqlite", "students")
+        insert(cur, "sqlite", "students")
 
-        # select fname, lname from student where lname like 'S%'
+        # select fname, lname from students where lname like 'S%'
         print(
             "Students whose last name begins with s: ",
-            read(cur, "student", "fname, lname", "lname like 'S%'"),
+            read(cur, "students", "fname, lname", "lname like 'S%'"),
         )
 
-        # select * from student
-        print("All entries from student", read(cur, "student"))
+        # select * from students
+        print("All entries from student", read(cur, "students"))
 
-        # Update student set fname=try where id=1
-        update(cur, "student", {"fname": "try"}, "id=1")
+        # Update students set fname=try where id=1
+        update(cur, "students", {"fname": "try"}, "id=1")
 
-        # delete from student where lname like 'g%'
-        delete(cur, "student", "fname like 'g%'")
+        # delete from students where lname like 'g%'
+        delete(cur, "students", "fname like 'g%'")
 
         # CRUD operations for fee table
 
@@ -129,9 +130,9 @@ def main():
         print(
             join(
                 cur,
-                "student",
+                "students",
                 "fee",
-                join_condition="student.id=fee.student_id",
+                join_condition="students.id=fee.student_id",
                 join_type="inner join",
                 where_condition="id=1",
             )

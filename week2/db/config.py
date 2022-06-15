@@ -1,5 +1,5 @@
 schema = {
-    "student": {
+    "students": {
         "sqlite": {"id": "integer primary key", "fname": "text", "lname": "text"},
         "sqlserver": {"id": "int primary key", "fname": "varchar(15)", "lname": "varchar(15)"},
     },
@@ -9,4 +9,14 @@ schema = {
     },
 }
 
-db = {"sqlite": "student.db", "sqlserver": None}
+# config for SQL Server
+driver = "{ODBC Driver 17 for SQL Server}"
+server = "server"  # needs replacement
+database = "db"  # needs replacement
+username = "username"  # needs replacement
+password = "password"  # needs replacement
+
+db = {
+    "sqlite": "student.db",
+    "sqlserver": f"DRIVER={driver};SERVER={server};DATABASE={database};UID={username};PWD={password}",
+}
