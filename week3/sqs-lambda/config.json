@@ -1,0 +1,59 @@
+{
+    "credentials": {
+        "aws_access_key_id": "<access key>",
+        "aws_secret_access_key": "<secret key>",
+        "region_name": "us-east-1"
+    },
+    "iam_user_id": "<iam id>",
+    "lambda_func_1_params": {
+        "FunctionName": "lambda-send",
+        "Runtime": "python3.8",
+        "Role": "arn:aws:iam::<iam id>:role/myrole",
+        "Code": {
+            "S3Bucket": "<bucket name>",
+            "S3Key": "zipfile1.zip"
+        },
+        "Handler": "lambda_function.lambda_handler"
+    },
+    "lambda_func_2_params": {
+        "FunctionName": "lambda-poll",
+        "Runtime": "python3.8",
+        "Role": "arn:aws:iam::<iam id>:role/myrole",
+        "Code": {
+            "S3Bucket": "<bucket name>",
+            "S3Key": "zipfile2.zip"
+        },
+        "Handler": "lambda_function.lambda_handler"
+    },
+    "lambda_1_zipfile": "zipfile1.zip",
+    "lambda_2_zipfile": "zipfile2.zip",
+    "s3_bucket": {
+        "name": "<bucket name>"
+    },
+    "sqs": {
+        "arn": "<queue arn>",
+        "QueueUrl": "<queue url>"
+    },
+    "trigger": {
+        "permissions_sendfunc": {
+            "StatementId": "Statement1",
+            "Action": "lambda:InvokeFunction",
+            "Principal": "*"
+        },
+        "permissions_pollfunc": {
+            "StatementId": "Statement2",
+            "Action": "lambda:InvokeFunction",
+            "Principal": "events.amazonaws.com"
+        },
+        "notification": {
+            "Events": [
+                "s3:ObjectCreated:*"
+            ]
+        }
+    },
+    "event_rule": {
+        "Name": "InvokeLambdaPeriodically",
+        "ScheduleExpression": "rate(1 minute)",
+        "State": "ENABLED"
+    }
+}

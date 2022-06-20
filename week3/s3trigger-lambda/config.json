@@ -1,0 +1,33 @@
+{
+    "credentials": {
+        "aws_access_key_id": "<access key>",
+        "aws_secret_access_key": "<secret key>",
+        "region_name": "us-east-1"
+    },
+    "lambda_func_params": {
+        "FunctionName": "myfunc",
+        "Runtime": "python3.8",
+        "Role": "arn:aws:iam::<iam id>:role/<name>",
+        "Code": {
+            "S3Bucket": "<bucket name>",
+            "S3Key": "zipfile.zip"
+        },
+        "Handler": "lambda_function.lambda_handler"
+    },
+    "lambda_zipfile": "zipfile.zip",
+    "s3_bucket": {
+        "name": "<bucket name>"
+    },
+    "trigger": {
+        "permissions": {
+            "StatementId": "statement1",
+            "Action": "lambda:InvokeFunction",
+            "Principal": "*"
+        },
+        "notification": {
+            "Events": [
+                "s3:ObjectCreated:*"
+            ]
+        }
+    }
+}
