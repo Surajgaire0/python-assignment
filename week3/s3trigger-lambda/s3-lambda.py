@@ -4,38 +4,59 @@ import time
 import boto3
 
 
-def setup_bucket(config):
-    """create bucket and add zipfile containing lambda function code"""
-
-    s3_client = boto3.client("s3", **config["credentials"], verify=False)
-    s3_client.create_bucket(Bucket=config["lambda_func_params"]["Code"]["S3Bucket"])
-    s3_client.upload_file(config["lambda_zipfile"], *config["lambda_func_params"]["Code"].values())
-    return s3_client
-
-
-def create_lambda(config):
-    client = boto3.client(
-        "lambda",
-        **config["credentials"]
-        # verify=False,
+def client(service, aws_access_key_id, aws_secret_access_key, **kwargs):
+    return boto3.client(
+        service,
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key,
+        **kwargs,
     )
-    lambda_func = client.create_function(**config["lambda_func_params"])
+
+
+def create_bucket(client, bucket_name):
+    response = client.create_bucket(Bucket=bucket_name)
+    return response
+
+
+def upload_to_bucket(client, file, bucket, key):
+    response = client.upload_file(file, bucket, key)
+    return response
+
+
+def create_lambda(client, params: dict):
+    lambda_func = client.create_function(**params)
     lambda_arn = lambda_func["FunctionArn"]
-    client.add_permission(
-        FunctionName=lambda_arn,
-        SourceArn=f"arn:aws:s3:::{config['s3_bucket']['name']}",
-        **config["trigger"]["permissions"],
-    )
-    return client, lambda_arn
+    return lambda_arn
+
+
+def lambda_add_permission(client, lambda_arn, source_arn, **kwargs):
+    client.add_permission(FunctionName=lambda_arn, SourceArn=source_arn, **kwargs)
 
 
 def main():
     with open("config.json", "r") as f:
         config = json.load(f)
 
-    s3_client = setup_bucket(config)
+    s3_client = client("s3", **config["credentials"], verify=False)
+    lambda_client = client("lambda", **config["credentials"], verify=False)
 
-    _, lambda_arn = create_lambda(config)
+    # create bucket
+    create_bucket(s3_client, bucket_name=config["s3_bucket"]["name"])
+
+    # add zipfile for lambda function
+    upload_to_bucket(
+        s3_client, config["lambda_zipfile"], *config["lambda_func_params"]["Code"].values()
+    )
+
+    # create lambda func
+    arn_lambda = create_lambda(lambda_client, config["lambda_func_params"])
+
+    lambda_add_permission(
+        lambda_client,
+        arn_lambda,
+        f"arn:aws:s3:::{config['s3_bucket']['name']}",
+        **config["trigger"]["permissions"],
+    )
 
     time.sleep(1)
 
@@ -44,7 +65,7 @@ def main():
         NotificationConfiguration={
             "LambdaFunctionConfigurations": [
                 {
-                    "LambdaFunctionArn": lambda_arn,
+                    "LambdaFunctionArn": arn_lambda,
                     "Events": config["trigger"]["notification"]["Events"],
                 }
             ]
